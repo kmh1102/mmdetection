@@ -78,7 +78,7 @@ class CocoMetric(BaseMetric):
                  outfile_prefix: Optional[str] = None,
                  file_client_args: dict = None,
                  backend_args: dict = None,
-                 collect_device: str = 'cpu',
+                 collect_device: str = 'gpu',
                  prefix: Optional[str] = None,
                  sort_categories: bool = False,
                  use_mp_eval: bool = False) -> None:
