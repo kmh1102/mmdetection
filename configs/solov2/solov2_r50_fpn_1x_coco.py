@@ -2,7 +2,7 @@ _base_ = [
     '../_base_/datasets/coco_instance.py',
     '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
 ]
-
+data_root = '/data/home/user12/dl-projects/datasets/coco/'
 # model settings
 model = dict(
     type='SOLOv2',
@@ -19,7 +19,7 @@ model = dict(
         num_stages=4,
         out_indices=(0, 1, 2, 3),
         frozen_stages=1,
-        init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50'),
+        init_cfg=dict(type='Pretrained', checkpoint='checkpoints/solov2/solov2_r50_fpn_1x_coco_20220512_125858-a357fa23.pth'),
         style='pytorch'),
     neck=dict(
         type='FPN',
