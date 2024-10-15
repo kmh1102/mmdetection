@@ -12,7 +12,7 @@ cfg.metainfo = {
 }
 
 # Modify dataset type and path
-cfg.data_root = '/data/home/user12/dl-projects/datasets/AAPD'
+cfg.data_root = '/data/home/user12/dl-projects/datasets/APD'
 
 cfg.train_dataloader.dataset.ann_file = 'annotations/train.json'
 cfg.train_dataloader.dataset.data_root = cfg.data_root
