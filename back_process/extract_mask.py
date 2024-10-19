@@ -9,68 +9,82 @@ from mmdet.apis import DetInferencer, init_detector, inference_detector
 from mmdet.structures import DetDataSample
 
 
-def image_segment(seg_image: str, out_dir: str, model: str, weight: str) -> dict:
-    """
-    Args:
-        seg_image: 待分割的图片路径
-        out_dir: 保存输出结果的目录路径
-        model: 分割模型
-        weight: 权重文件路径
+class ImageSegmenter:
+    def __init__(self, model: str, weight: str, threshold: float = 0.7):
+        """
+        初始化分割器
 
-    Returns: 推理结果
+        Args:
+            model: 分割模型
+            weight: 权重文件路径
+            threshold: 掩码得分阈值
+        """
+        self.model = model
+        self.weight = weight
+        self.threshold = threshold
+        self.result = None
 
-    """
-    if not osp.exists(out_dir):
-        os.mkdir(out_dir)
+    def __call__(self, image: str, out_dir: str) -> None:
+        """
+        对图像进行分割
 
-    seg_result_save_path = osp.join(out_dir, 'seg_result.pickle')
-    if not osp.exists(seg_result_save_path):
-        # 推理
-        seg_inference = DetInferencer(model=model, weights=weight)
-        seg_result = seg_inference(seg_image, out_dir=out_dir, no_save_pred=False, return_datasamples=True)
+        Args:
+            image: 待分割的图片路径
+            out_dir: 保存输出结果的目录路径
 
-        # 存储推理结果
-        with open(seg_result_save_path, 'wb') as file:
-            pickle.dump(seg_result, file)
-        print('seg_result is created for the first time.')
-    else:
-        # 加载推理结果
-        with open(seg_result_save_path, 'rb') as file:
-            seg_result = pickle.load(file)
-        print(f'seg_result comes from {seg_result_save_path}.')
-    return seg_result
+        Returns: 推理结果
+        """
+        if not osp.exists(out_dir):
+            os.makedirs(out_dir)
 
+        result_save_path = osp.join(out_dir, 'result.pickle')
+        if not osp.exists(result_save_path):
+            # 推理
+            inference = DetInferencer(model=self.model, weights=self.weight)
+            result = inference(image, out_dir=out_dir, no_save_pred=False, return_datasamples=True)
 
-def extract_masks(seg_result: dict, score_threshold: float = 0.7) -> np.ndarray:
-    """
+            # 存储推理结果
+            with open(result_save_path, 'wb') as file:
+                pickle.dump(result, file)
+            print('result is created for the first time.')
+        else:
+            # 加载推理结果
+            with open(result_save_path, 'rb') as file:
+                result = pickle.load(file)
+            print(f'result comes from {result_save_path}.')
 
-    Args:
-        seg_result: 模型分割结果
-        score_threshold: 掩码得分阈值
+        self.result = result
 
-    Returns: 一组大于阈值的掩码
+    @property
+    def masks(self) -> np.ndarray:
+        """
+        提取高于阈值的掩码
+        Returns:一组大于阈值的掩码
 
-    """
-    # 从字典中提取predictions的值
-    predictions = seg_result['predictions']
+        """
+        if self.result is None:
+            raise ValueError("No segmentation result available. Please call the segmenter first.")
 
-    # 目前只取列表中的第一个元素，其为DetDataSample类型
-    prediction = predictions[0]
+        # 从字典中提取predictions的值
+        predictions = self.result['predictions']
 
-    # 为InstanceData类型
-    pred_instances = prediction.pred_instances
+        # 目前只取列表中的第一个元素，其为DetDataSample类型
+        prediction = predictions[0]
 
-    # 提取预测掩码与对应得分
-    masks = pred_instances.masks
-    scores = pred_instances.scores
+        # 为InstanceData类型
+        pred_instances = prediction.pred_instances
 
-    # 获得阈值高于0.7的掩码索引
-    mask_indices = [index for index, score in enumerate(scores) if score > score_threshold]
+        # 提取预测掩码与对应得分
+        masks = pred_instances.masks
+        scores = pred_instances.scores
 
-    # 将掩码转换为numpy类型，同时将布尔值转换为数字，此时masks中的值全为0/1
-    masks = masks.cpu().numpy()[mask_indices, :, :] * 1
+        # 获得阈值高于0.7的掩码索引
+        mask_indices = [index for index, score in enumerate(scores) if score > self.threshold]
 
-    return masks
+        # 将掩码转换为numpy类型，同时将布尔值转换为数字，此时masks中的值全为0/1
+        masks = masks.cpu().numpy()[mask_indices, :, :] * 1
+
+        return masks
 
 
 if __name__ == '__main__':
