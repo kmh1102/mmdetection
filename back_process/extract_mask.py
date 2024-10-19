@@ -6,6 +6,7 @@ import cv2
 from PIL import Image
 import matplotlib.pyplot as plt
 from mmdet.apis import DetInferencer, init_detector, inference_detector
+from typing import Tuple
 from mmdet.structures import DetDataSample
 
 
@@ -46,20 +47,21 @@ class ImageSegmenter:
             # 存储推理结果
             with open(result_save_path, 'wb') as file:
                 pickle.dump(result, file)
-            print('result is created for the first time.')
+            print('seg_result is created for the first time.')
         else:
             # 加载推理结果
             with open(result_save_path, 'rb') as file:
                 result = pickle.load(file)
-            print(f'result comes from {result_save_path}.')
+            print(f'seg_result comes from {result_save_path}.')
 
         self.result = result
 
     @property
-    def masks(self) -> np.ndarray:
+    def masks(self) -> Tuple[np.ndarray, np.ndarray]:
         """
         提取高于阈值的掩码
-        Returns:一组大于阈值的掩码
+
+        Returns: 掩码数组, 组合后的掩码
 
         """
         if self.result is None:
@@ -82,9 +84,11 @@ class ImageSegmenter:
         mask_indices = [index for index, score in enumerate(scores) if score > self.threshold]
 
         # 将掩码转换为numpy类型，同时将布尔值转换为数字，此时masks中的值全为0/1
-        masks = masks.cpu().numpy()[mask_indices, :, :] * 1
+        masks = masks.cpu().numpy()[mask_indices, :, :].astype(int)
 
-        return masks
+        composed_mask = np.sum(masks, axis=0)
+
+        return masks, composed_mask
 
 
 if __name__ == '__main__':
